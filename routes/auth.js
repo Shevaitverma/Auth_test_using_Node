@@ -1,7 +1,8 @@
 const router = require('express').Router();
 const User = require('../model/user');
-const { regesterValidation } = require('../validation');
+const { regesterValidation, loginValidation } = require('../validation');
 const bcrypt = require('bcrypt');
+const { valid } = require('@hapi/joi');
 
 
 
@@ -37,11 +38,45 @@ router.post('/regester', async (req, res)=>{
     });
     try {
         const savedUser = await user.save();
-        res.send(savedUser); 
+        res.send({ user: user.save()}); 
     } catch (err) {
         res.status(400).send(err);
     }
 });
 
+// ----- Login User -----
+router.post('/login', async (req,res)=>{
+    // ---- validate data before a user ----
+    const validation2 = loginValidation(req.body);
+    if(validation2.error){
+        res.status(400).send(validation2.error.details[0].message);
+        // ----- checking if the email exists -----
+        const user = await User.findOne({email: req.body.email});
+        if(!user) return res.status(400).send('Invalid Email or password');
+        // ----- password is correct -----
+        const validPass = await bcrypt(req.body.password, user.password);
+        if(!validPass) return res.status(400).send('Invalid Email or password');
+        
+        res.send('logged in...');
+    }   
+    // res.send('sucessfully logged in...')
+});
+
+// router.post('/login', async (req, res)=>{
+//     // ---- validate data before a user ----
+//     const validation2 = loginValidation(req.body);
+//     if(validation2.error){
+//         res.status(400).send(validation2.error.details[0].message);
+//         // ----- checking if the email exists -----
+//         const user = await User.findOne({email: req.body.email});
+//         if(!user) return res.status(400).send('Invalid Email or password');
+//         // ----- password is correct -----
+//         const validPass = await bcrypt(req.body.password, user.password);
+//         if(!validPass) return res.status(400).send('Invalid Email or password');
+        
+//         res.send('logged in...');
+//     }   
+//     // res.send('logged in...')
+// });
 
 module.exports = router; 
